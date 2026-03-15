@@ -165,10 +165,18 @@ $bookingStatusClass = 'status-' . str_replace([' ', '_'], '-', $bookingApprovalS
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Your Ticket - Ticketix</title>
     <link rel="icon" type="image/png" href="images/brand x.png" />
-    <link rel="stylesheet" href="css/ticketix-main.css">
-    <link rel="stylesheet" href="css/ticket.css">
+    <link rel="stylesheet" href="css/ticket.css?v=<?php echo time(); ?>">
 </head>
 <body>
+    <!-- Header Bar with Logo -->
+    <div class="page-header">
+        <div class="logo">
+            <img src="images/brand x.png" alt="Ticketix Logo">
+        </div>
+        <span class="header-title">Your Ticket</span>
+        <a href="TICKETIX NI CLAIRE.php" class="btn-back">← Home</a>
+    </div>
+
     <div class="ticket-container">
         <?php
             // Show message based on booking approval status
@@ -189,6 +197,11 @@ $bookingStatusClass = 'status-' . str_replace([' ', '_'], '-', $bookingApprovalS
         
         <div class="ticket-content">
             <div class="ticket-details">
+                <div class="movie-poster-float">
+                    <img src="<?= htmlspecialchars($ticket['image_poster'] ?? 'images/default-poster.jpg') ?>" 
+                         alt="<?= htmlspecialchars($ticket['title']) ?>" 
+                         onerror="this.src='images/default-poster.jpg'">
+                </div>
                 <h2>Movie Details</h2>
                 <div class="detail-item">
                     <span class="detail-label">Movie:</span>

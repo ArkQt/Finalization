@@ -34,28 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->close();
         }
 
-        if ($paymentType === 'credit-card') {
-            $cardNumber = trim($_POST['card_number'] ?? '');
-            $cardName = trim($_POST['card_name'] ?? '');
-            $cardExpiry = trim($_POST['card_expiry'] ?? '');
-            $cardCVV = trim($_POST['card_cvv'] ?? '');
-            
-            if (empty($cardNumber) || empty($cardName) || empty($cardExpiry) || empty($cardCVV)) {
-                $message = "All credit card fields are required.";
-                $messageType = 'error';
-            } else {
-                $stmt = $conn->prepare("INSERT INTO USER_PAYMENT_METHODS (acc_id, payment_type, card_number, card_name, card_expiry, card_cvv, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $stmt->bind_param("isssssi", $userId, $paymentType, $cardNumber, $cardName, $cardExpiry, $cardCVV, $isDefault);
-                if ($stmt->execute()) {
-                    $message = "Credit card added successfully!";
-                    $messageType = 'success';
-                } else {
-                    $message = "Error adding credit card: " . $conn->error;
-                    $messageType = 'error';
-                }
-                $stmt->close();
-            }
-        } elseif ($paymentType === 'gcash' || $paymentType === 'grabpay' || $paymentType === 'paymaya') {
+        if ($paymentType === 'gcash' || $paymentType === 'grabpay' || $paymentType === 'paymaya') {
             $numberField = $paymentType . "_number";
             $number = trim($_POST[$numberField] ?? '');
             
@@ -216,10 +195,19 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Profile - Ticketix</title>
-    <link rel="stylesheet" href="css/ticketix-main.css">
-    <link rel="stylesheet" href="css/profile.css">
+    <link rel="icon" type="image/png" href="images/brand x.png" />
+    <link rel="stylesheet" href="css/profile.css?v=<?php echo time(); ?>">
 </head>
 <body>
+    <!-- Header Bar with Logo -->
+    <div class="nav-header">
+        <div class="logo">
+            <img src="images/brand x.png" alt="Ticketix Logo">
+        </div>
+        <span class="header-title">My Profile</span>
+        <a href="TICKETIX NI CLAIRE.php" class="btn-back">← Home</a>
+    </div>
+
     <div class="profile-container">
         <div class="page-header">
             <div class="profile-avatar">
@@ -264,7 +252,7 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
             <div class="form-group">
                 <label for="fullName">Display Name / Nickname</label>
                 <input type="text" id="fullName" name="fullName" value="<?= htmlspecialchars($user['fullName'] ?? '') ?>" placeholder="How your name appears on the site">
-                <small style="color:#888;">This is the name shown when you're logged in. If left blank, your first and last name will be used.</small>
+                <small>This is the name shown when you're logged in. If left blank, your first and last name will be used.</small>
             </div>
 
             <div class="form-row">
@@ -286,60 +274,53 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
         </form>
 
         <!-- Payment Methods Section -->
-        <div class="payment-methods-section" style="margin-top: 40px; padding-top: 30px; border-top: 2px solid #e0e0e0;">
-            <h2 style="margin-bottom: 20px; color: #333;">Manage Payment Methods</h2>
+        <div class="payment-methods-section">
+            <h2>Manage Payment Methods</h2>
             
             <!-- Display existing payment methods -->
             <?php if (!empty($paymentMethods)): ?>
                 <div class="existing-payment-methods" style="margin-bottom: 30px;">
                     <?php foreach ($paymentMethods as $method): ?>
-                        <div class="payment-method-item" style="padding: 15px; margin-bottom: 15px; border: 2px solid #e0e0e0; border-radius: 8px; background: #f9f9f9;">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="payment-method-item">
+                            <div class="payment-method-row">
                                 <div>
-                                    <?php if ($method['payment_type'] === 'credit-card'): ?>
-                                        <strong>💳 Credit Card</strong>
-                                        <div style="margin-top: 5px; color: #666;">
-                                            Card Name: <?= htmlspecialchars($method['card_name']) ?><br>
-                                            Card Number: ****<?= htmlspecialchars(substr($method['card_number'], -4)) ?><br>
-                                            Expiry: <?= htmlspecialchars($method['card_expiry']) ?>
-                                        </div>
-                                    <?php elseif ($method['payment_type'] === 'gcash'): ?>
+                                    <?php if ($method['payment_type'] === 'gcash'): ?>
                                         <strong>📱 GCash</strong>
-                                        <div style="margin-top: 5px; color: #666;">
+                                        <div class="payment-method-detail">
                                             Number: <?= htmlspecialchars($method['gcash_number']) ?>
                                         </div>
                                     <?php elseif ($method['payment_type'] === 'grabpay'): ?>
                                         <strong>📱 GrabPay</strong>
-                                        <div style="margin-top: 5px; color: #666;">
+                                        <div class="payment-method-detail">
                                             Number: <?= htmlspecialchars($method['gcash_number']) ?>
                                         </div>
                                     <?php elseif ($method['payment_type'] === 'paymaya'): ?>
                                         <strong>📱 PayMaya</strong>
-                                        <div style="margin-top: 5px; color: #666;">
+                                        <div class="payment-method-detail">
                                             Number: <?= htmlspecialchars($method['gcash_number']) ?>
                                         </div>
                                     <?php elseif ($method['payment_type'] === 'paypal'): ?>
                                         <strong>📧 PayPal</strong>
-                                        <div style="margin-top: 5px; color: #666;">
+                                        <div class="payment-method-detail">
                                             Email: <?= htmlspecialchars($method['paypal_email']) ?>
                                         </div>
                                     <?php endif; ?>
 
                                     <?php if ($method['is_default']): ?>
-                                        <span style="display: inline-block; margin-top: 5px; padding: 3px 10px; background: #667eea; color: white; border-radius: 12px; font-size: 0.85em;">Default</span>
+                                        <span class="default-badge">Default</span>
                                     <?php endif; ?>
 
                                 </div>
-                                <div style="display: flex; gap: 10px;">
+                                <div class="payment-method-actions">
                                     <?php if (!$method['is_default']): ?>
                                         <form method="POST" style="display: inline;" onsubmit="return confirm('Set this as default payment method?');">
                                             <input type="hidden" name="method_id" value="<?= $method['payment_method_id'] ?>">
-                                            <button type="submit" name="set_default" class="btn" style="padding: 8px 15px; font-size: 0.9em; background: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Set Default</button>
+                                            <button type="submit" name="set_default" class="btn btn-success">Set Default</button>
                                         </form>
                                     <?php endif; ?>
                                     <form method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this payment method?');">
                                         <input type="hidden" name="method_id" value="<?= $method['payment_method_id'] ?>">
-                                        <button type="submit" name="delete_payment_method" class="btn" style="padding: 8px 15px; font-size: 0.9em; background: #dc3545; color: white; border: none; border-radius: 5px; cursor: pointer;">Delete</button>
+                                        <button type="submit" name="delete_payment_method" class="btn btn-danger">Delete</button>
                                     </form>
                                 </div>
                             </div>
@@ -347,18 +328,18 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
                     <?php endforeach; ?>
                 </div>
             <?php else: ?>
-                <p style="color: #666; margin-bottom: 20px;">No payment methods saved yet. Add one below.</p>
+                <p class="no-payment-text">No payment methods saved yet. Add one below.</p>
             <?php endif; ?>
             
             <!-- Add Payment Method Form -->
-            <div class="add-payment-method" style="padding: 20px; border: 2px solid #e0e0e0; border-radius: 10px; background: #f9f9f9;">
-                <h3 style="margin-bottom: 15px; color: #333;">Add Payment Method</h3>
+            <div class="add-payment-method">
+                <h3>Add Payment Method</h3>
                 <form method="POST" id="addPaymentForm">
                     <div class="form-group">
                         <label for="payment_type_select">Payment Method Type *</label>
-                        <select id="payment_type_select" name="payment_type" required onchange="togglePaymentFields()" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 1em; box-sizing: border-box;">
+                        <select id="payment_type_select" name="payment_type" required onchange="togglePaymentFields()">
                             <option value="">Select Payment Method</option>
-                            <option value="credit-card">Credit Card</option>
+
                             <option value="gcash">GCash</option>
                             <option value="paypal">PayPal</option>
                             <option value="grabpay">GrabPay</option>
@@ -366,35 +347,14 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
                         </select>
                     </div>
                     
-                    <!-- Credit Card Fields -->
-                    <div id="credit-card-fields" style="display: none;">
-                        <div class="form-group">
-                            <label for="card_name">Cardholder Name *</label>
-                            <input type="text" id="card_name" name="card_name" placeholder="John Doe">
-                        </div>
-                        <div class="form-group">
-                            <label for="card_number">Card Number *</label>
-                            <input type="text" id="card_number" name="card_number" placeholder="1234 1234 1234 1234" maxlength="19" pattern="([0-9]{4} ?){3}[0-9]{4}">
 
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="card_expiry">Expiry Date (MM/YYYY) *</label>
-                                <input type="text" id="card_expiry" name="card_expiry" placeholder="12/2025" maxlength="7" pattern="[0-9]{2}/[0-9]{4}">
-                            </div>
-                            <div class="form-group">
-                                <label for="card_cvv">CVV *</label>
-                                <input type="text" id="card_cvv" name="card_cvv" placeholder="123" maxlength="4" pattern="[0-9]{3,4}">
-                            </div>
-                        </div>
-                    </div>
                     
                     <!-- GCash Fields -->
                     <div id="gcash-fields" style="display: none;">
                         <div class="form-group">
                             <label for="gcash_number">Philippine Phone Number *</label>
                             <input type="text" id="gcash_number" name="gcash_number" placeholder="09123456789 or 639123456789" maxlength="13" pattern="(09[0-9]{9}|63[0-9]{10})">
-                            <small style="color: #666; display: block; margin-top: 5px;">Format: 09XXXXXXXXX (11 digits, starts with 09) or 63XXXXXXXXXX (13 digits, starts with 63)</small>
+                            <small>Format: 09XXXXXXXXX (11 digits, starts with 09) or 63XXXXXXXXXX (13 digits, starts with 63)</small>
                         </div>
                     </div>
                     
@@ -411,7 +371,7 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
                         <div class="form-group">
                             <label for="grabpay_number">GrabPay Number *</label>
                             <input type="text" id="grabpay_number" name="grabpay_number" placeholder="09123456789 or 639123456789" maxlength="13" pattern="(09[0-9]{9}|63[0-9]{10})">
-                            <small style="color: #666;">Format: 09XXXXXXXXX or 63XXXXXXXXXX</small>
+                            <small>Format: 09XXXXXXXXX or 63XXXXXXXXXX</small>
                         </div>
                     </div>
 
@@ -444,42 +404,13 @@ $birthdateFormatted = $user['birthdate'] ? date('Y-m-d', strtotime($user['birthd
     <script>
         function togglePaymentFields() {
             const paymentType = document.getElementById('payment_type_select').value;
-            document.getElementById('credit-card-fields').style.display = (paymentType === 'credit-card') ? 'block' : 'none';
-    document.getElementById('gcash-fields').style.display = (paymentType === 'gcash') ? 'block' : 'none';
+            document.getElementById('gcash-fields').style.display = (paymentType === 'gcash') ? 'block' : 'none';
     document.getElementById('paypal-fields').style.display = (paymentType === 'paypal') ? 'block' : 'none';
     document.getElementById('grabpay-fields').style.display = (paymentType === 'grabpay') ? 'block' : 'none';
     document.getElementById('paymaya-fields').style.display = (paymentType === 'paymaya') ? 'block' : 'none';
         }
         
-        // Format card expiry input
-        const cardExpiryInput = document.getElementById('card_expiry');
-        if (cardExpiryInput) {
-            cardExpiryInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-                if (value.length >= 2) {
-                    value = value.substring(0, 2) + '/' + value.substring(2, 6);
-                }
-                e.target.value = value;
-            });
-        }
-        
-        // Format card number input (add spaces every 4 digits)
-        const cardNumberInput = document.getElementById('card_number');
-        if (cardNumberInput) {
-            cardNumberInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-                value = value.match(/.{1,4}/g)?.join(' ') || value;
-                e.target.value = value;
-            });
-        }
-        
-        // Format CVV input
-        const cardCVVInput = document.getElementById('card_cvv');
-        if (cardCVVInput) {
-            cardCVVInput.addEventListener('input', function(e) {
-                e.target.value = e.target.value.replace(/\D/g, '');
-            });
-        }
+
         
         // Format GCash number input
         const gcashNumberInput = document.getElementById('gcash_number');

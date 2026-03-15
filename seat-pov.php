@@ -674,8 +674,20 @@
         var SH = silCanvas.height;  // 340
         silCtx.clearRect(0, 0, SW, SH);
 
-        var maxSilRows = Math.min(pov.rowIndex, 4);
+        var maxSilRows = pov.rowIndex;
         var seatPanModifier = pov.panX || 0;
+
+        // Build list of actual rows in front of the selected seat using real data
+        // ROW_CENTERS[letter].maxCol gives the actual number of seats per row
+        var silRowData = [];
+        for (var ri = pov.rowIndex - 1; ri >= 0 && silRowData.length < maxSilRows; ri--) {
+            var letter = ROWS[ri];
+            if (ROW_CENTERS[letter]) {
+                silRowData.push({ letter: letter, seatCount: ROW_CENTERS[letter].maxCol });
+            }
+        }
+        // silRowData[0] = row directly in front of viewer, silRowData[last] = nearest screen
+        maxSilRows = silRowData.length;
 
         // Anchor silhouettes dynamically below the actual screen bottom edge,
         // so they never overlap regardless of how tall the 16:9 screen is.
@@ -685,27 +697,86 @@
         var silRange   = Math.max(silFloor - screenBot, maxSilRows * 16);
         var rowStep    = maxSilRows > 1 ? silRange / (maxSilRows - 1) : 0;
 
+        // Perspective convergence: one edge of the seating area angles inward
+        // toward the screen, forming a trapezoid that matches the screen shape.
+        //   G-1  (sk < 0, Right angle):  /██████|  — left edge converges
+        //   G-18 (sk > 0, Left angle):   |██████\  — right edge converges
+
+        // Compute offset to align bottom seat row's converging edge with screen corner
+        // Bottom row (r=0) has the widest rowWidth: SW * (0.50 + depthT_0 * 0.45)
+        var bottomDepthT = 1 / (maxSilRows + 1);
+        var bottomRowWidth = SW * (0.50 + bottomDepthT * 0.45);
+        var bottomPanX = -seatPanModifier * (0.5 + bottomDepthT * 0.25);
+        var bottomCenterX = SW / 2 + bottomPanX;
+        var alignOffset = 0;
+        if (pov.skew < 0) {
+            // G-1: align bottom row's left edge with screen's bottom-left corner
+            var currentLeft = bottomCenterX - bottomRowWidth / 2;
+            alignOffset = bl.x - currentLeft;
+            // Clamp: don't let right edge go off canvas
+            var newRight = bottomCenterX + alignOffset + bottomRowWidth / 2;
+            if (newRight > SW - 10) alignOffset -= (newRight - (SW - 10));
+        } else if (pov.skew > 0) {
+            // G-18: align bottom row's right edge with screen's bottom-right corner
+            var currentRight = bottomCenterX + bottomRowWidth / 2;
+            alignOffset = br.x - currentRight;
+            // Clamp: don't let left edge go off canvas
+            var newLeft = bottomCenterX + alignOffset - bottomRowWidth / 2;
+            if (newLeft < 40) alignOffset += (40 - newLeft);
+        }
+        // Nudge seats slightly inward so they don't touch the edge
+        alignOffset *= 0.50;
+
         for (var r = 0; r < maxSilRows; r++) {
             var depthT    = (r + 1) / (maxSilRows + 1);
             // r=0 is nearest viewer (lowest on canvas), r=max is nearest screen (highest)
             var rowY      = silFloor - r * rowStep;
             var rowAlpha  = 0.07 + depthT * 0.11;
-            var rowWidth  = SW * (0.28 + depthT * 0.52);
+            var rowWidth  = SW * (0.50 + depthT * 0.45);
             
             // Pan silhouettes opposite to the screen to simulate looking laterally
             var seatPanX = -seatPanModifier * (0.5 + depthT * 0.25);
-            var rowStartX = (SW - rowWidth) / 2 + seatPanX;
-            var seatCount = Math.round(6 + depthT * 8);
+            var rowCenterX = SW / 2 + seatPanX + alignOffset;
+            // Use real seat count from the seating chart
+            // Show only the viewer's half of seats for side seats
+            var fullSeatCount = silRowData[r].seatCount;
+            var seatCount = (Math.abs(pov.skew) > 0.15)
+                ? Math.ceil(fullSeatCount / 2)
+                : fullSeatCount;
+
+            // perspectiveT: 0 at viewer (r=0), 1 at screen (r=max)
+            // Convergence grows as rows approach screen, creating trapezoid
+            var perspectiveT = r / Math.max(1, maxSilRows - 1);
+            var convergeShift = perspectiveT * Math.abs(pov.skew) * 0.5 * rowWidth;
+
+            var rowLeft  = rowCenterX - rowWidth / 2;
+            var rowRight = rowCenterX + rowWidth / 2;
+
+            if (pov.skew < 0) {
+                // Viewer on left (G-1): left edge converges toward screen
+                rowLeft += convergeShift;
+            } else if (pov.skew > 0) {
+                // Viewer on right (G-18): right edge converges toward screen
+                rowRight -= convergeShift;
+            }
+
+            var actualWidth = rowRight - rowLeft;
 
             for (var c = 0; c < seatCount; c++) {
-                var sx = rowStartX + (c / (seatCount - 1)) * rowWidth;
-                var sh = 11 + depthT * 15;
-                var sw = rowWidth / (seatCount * 1.35);
+                var t  = seatCount > 1 ? c / (seatCount - 1) : 0.5;
+                var sx = rowLeft + t * actualWidth;
+                // Scale seat size: closer rows (low depthT) are larger, far rows smaller
+                var sizeScale = 1.0 - depthT * 0.35;
+                var sh = (6 + depthT * 8) * sizeScale;
+                var sw = (actualWidth / (seatCount * 1.8)) * sizeScale;
+
+                // Seat back (main body)
                 silCtx.fillStyle = 'rgba(232,235,238,' + (rowAlpha + 0.12) + ')';
-                roundRect(silCtx, sx - sw/2, rowY, sw, sh, 3);
+                roundRect(silCtx, sx - sw/2, rowY, sw, sh, 2);
                 silCtx.fill();
+                // Seat headrest
                 silCtx.fillStyle = 'rgba(201,208,213,' + rowAlpha + ')';
-                silCtx.fillRect(sx - sw*0.33, rowY - sh*0.28, sw*0.66, sh*0.26);
+                silCtx.fillRect(sx - sw*0.30, rowY - sh*0.22, sw*0.60, sh*0.20);
             }
         }
 
@@ -866,17 +937,9 @@
         showSeatPOV(seatList[currentSeatIndex]);
     });
 
-    // Keep trigger button enabled/disabled in sync with seat selection
-    document.querySelectorAll('.seat:not(.booked)').forEach(function(seat) {
-        seat.addEventListener('click', function() {
-            setTimeout(function() {
-                var povBtn = document.getElementById('pov-trigger-btn');
-                if (povBtn) {
-                    povBtn.disabled = document.querySelectorAll('.seat.selected').length === 0;
-                }
-            }, 10);
-        });
-    });
+    // POV trigger button enabled/disabled state is now synced via
+    // updateProceedBtn() in seat-reservation.php, which fires on every
+    // selection change including click-and-drag, so no extra listener needed here.
 
 })();
 </script>

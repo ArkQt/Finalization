@@ -411,14 +411,7 @@ try {
         throw new Exception("Ticket was not saved!");
     }
     
-    // Auto-approve: send confirmation email immediately
-    require_once __DIR__ . '/send-booking-email.php';
-    $emailSent = sendBookingConfirmationEmail($ticketId, $conn);
-    if ($emailSent) {
-        error_log("Booking confirmation email sent successfully (auto-approved).");
-    } else {
-        error_log("Failed to send booking confirmation email (auto-approved).");
-    }
+    // Email will be sent when the customer clicks "Download" in My Bookings
     
     // Redirect to ticket page
     header("Location: ticket.php?ticket_id=" . $ticketId);

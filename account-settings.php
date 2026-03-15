@@ -135,10 +135,19 @@ $conn->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Account Settings - Ticketix</title>
-    <link rel="stylesheet" href="css/ticketix-main.css">
-    <link rel="stylesheet" href="css/account-settings.css">
+    <link rel="icon" type="image/png" href="images/brand x.png" />
+    <link rel="stylesheet" href="css/account-settings.css?v=<?php echo time(); ?>">
 </head>
 <body>
+    <!-- Header Bar with Logo -->
+    <div class="nav-header">
+        <div class="logo">
+            <img src="images/brand x.png" alt="Ticketix Logo">
+        </div>
+        <span class="header-title">Account Settings</span>
+        <a href="TICKETIX NI CLAIRE.php" class="btn-back">← Home</a>
+    </div>
+
     <div class="settings-container">
         <div class="page-header">
             <h1>Account Settings</h1>

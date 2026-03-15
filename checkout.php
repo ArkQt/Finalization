@@ -46,17 +46,21 @@ $foodTotal = floatval($bookingData['foodTotal'] ?? 0);
 
 // ── 20-Minute Cutoff Validation ───────────────────────────────────────────
 // Only check if the booking is for today (future dates are always allowed)
-if ($showDate === date('Y-m-d') && !empty($showTime)) {
+// Use Philippine timezone explicitly for accurate time comparison
+$phTimezone = new DateTimeZone('Asia/Manila');
+$nowPH = new DateTime('now', $phTimezone);
+$todayPH = $nowPH->format('Y-m-d');
+
+if ($showDate === $todayPH && !empty($showTime)) {
     // Parse time like "10:30 AM", "08:30 PM" etc.
-    $parsedTime = date_parse($showTime);
-    if ($parsedTime && isset($parsedTime['hour'])) {
-        $showDateTime = mktime($parsedTime['hour'], $parsedTime['minute'] ?? 0, 0);
-        $cutoffTime   = $showDateTime - (20 * 60); // 20 minutes before show
-        if (time() >= $cutoffTime) {
+    $showDateTimeObj = DateTime::createFromFormat('g:i A', $showTime, $phTimezone);
+    if ($showDateTimeObj) {
+        $showDateTimeObj->setDate((int)$nowPH->format('Y'), (int)$nowPH->format('m'), (int)$nowPH->format('d'));
+        $diffSeconds = $showDateTimeObj->getTimestamp() - $nowPH->getTimestamp();
+        if ($diffSeconds <= (20 * 60)) {
             // Too late — redirect back with an error
-            session_start();
             header("Location: seat-reservation.php?" . http_build_query([
-                'movie'  => $_REQUEST['booking_data'] ? ($bookingData['movie'] ?? '') : '',
+                'movie'  => $bookingData['movie'] ?? '',
                 'branch' => $bookingData['branch'] ?? '',
                 'time'   => $showTime,
                 'date'   => $showDate,
@@ -141,12 +145,19 @@ $userId = $_SESSION['user_id'] ?? $_SESSION['acc_id'] ?? null;
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout - Ticketix</title>
     <link rel="icon" type="image/png" href="images/brand x.png" />
-    <link rel="stylesheet" href="css/ticketix-main.css">
-    <link rel="stylesheet" href="css/checkout.css">
+    <link rel="stylesheet" href="css/checkout.css?v=<?php echo time(); ?>">
 </head>
 <body>
-    <div class="checkout-container">
+    <!-- Header Bar with Logo -->
+    <div class="checkout-header">
+        <div class="logo">
+            <img src="images/brand x.png" alt="Ticketix Logo">
+        </div>
+        <span class="header-title">Checkout</span>
         <a href="javascript:history.back()" class="btn-back">← Back</a>
+    </div>
+
+    <div class="checkout-container">
         <h1>Checkout</h1>
         
         <div class="booking-summary">
@@ -173,7 +184,7 @@ $userId = $_SESSION['user_id'] ?? $_SESSION['acc_id'] ?? null;
                     <strong>Seats (<?= $seatCount ?>):</strong>
                     <div class="seats-list">
                         <?php foreach($seatDetails as $sd): ?>
-                            <span class="seat-badge <?= strtolower($sd['tier']) ?>" style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; border: 1px solid rgba(0,191,255,0.3); font-size: 0.85em; display: inline-block; margin: 2px;">
+                            <span class="seat-badge <?= strtolower($sd['tier']) ?>">
                                 <?= htmlspecialchars($sd['id']) ?> (<?= $sd['tier'] ?>)  - ₱<?= number_format($sd['price'], 2) ?>
                             </span>
                         <?php endforeach; ?>

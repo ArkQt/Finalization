@@ -107,6 +107,7 @@ $conn->close();
     <title>My Bookings - Ticketix</title>
     <link rel="stylesheet" href="css/ticketix-main.css">
     <link rel="stylesheet" href="css/my-bookings.css">
+    <link rel="icon" type="image/png" href="images/brand x.png" />
 </head>
 <body>
     <div class="bookings-container">
@@ -145,6 +146,17 @@ $conn->close();
                     } else {
                         // Fallback when booking_status column doesn't exist
                         $displayStatus = strtolower($booking['ticket_status'] ?? 'pending');
+                    }
+
+                    // Check if booking has expired (5 minutes after showtime)
+                    // Only override if not already cancelled or refunded
+                    if (!in_array($displayStatus, ['cancelled', 'refunded'])) {
+                        $showDateTime = new DateTime($booking['show_date'] . ' ' . $booking['show_hour']);
+                        $showDateTime->modify('+5 minutes');
+                        $now = new DateTime();
+                        if ($now > $showDateTime) {
+                            $displayStatus = 'expired';
+                        }
                     }
                     
                     $statusClass = 'status-' . strtolower($displayStatus);
@@ -255,7 +267,7 @@ $conn->close();
                             <div class="booking-actions">
                                 <a href="ticket.php?ticket_id=<?= $booking['ticket_id'] ?>" class="btn btn-primary">View Ticket</a>
                                 <?php if ($displayStatus === 'valid'): ?>
-                                    <a href="ticket.php?ticket_id=<?= $booking['ticket_id'] ?>" class="btn btn-secondary">Download</a>
+                                    <button class="btn btn-secondary" onclick="sendTicketEmail(<?= $booking['ticket_id'] ?>, this)">Download</button>
                                 <?php elseif ($displayStatus === 'pending'): ?>
                                     <span class="btn btn-secondary" style="opacity: 0.6; cursor: not-allowed;">Pending Approval</span>
                                 <?php endif; ?>
@@ -273,6 +285,50 @@ $conn->close();
             <a href="TICKETIX NI CLAIRE.php" class="back-link">← Back to Homepage</a>
         </div>
     </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-overlay" id="toastOverlay" onclick="hideDownloadToast()"></div>
+    <div class="toast-notification" id="downloadToast">
+        <div class="toast-message" id="toastMessage">Your ticket receipt has been sent to your email. Please check your inbox or spam folder.</div>
+        <button class="toast-close" onclick="hideDownloadToast()">OK</button>
+    </div>
+
+    <script>
+    function sendTicketEmail(ticketId, btn) {
+        // Disable the button while sending
+        btn.disabled = true;
+        btn.textContent = 'Sending...';
+
+        fetch('send-ticket-email.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'ticket_id=' + ticketId
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('toastMessage').textContent = data.message;
+            showDownloadToast();
+            btn.disabled = false;
+            btn.textContent = 'Download';
+        })
+        .catch(() => {
+            document.getElementById('toastMessage').textContent = 'An error occurred. Please try again later.';
+            showDownloadToast();
+            btn.disabled = false;
+            btn.textContent = 'Download';
+        });
+    }
+
+    function showDownloadToast() {
+        document.getElementById('toastOverlay').classList.add('show');
+        document.getElementById('downloadToast').classList.add('show');
+    }
+    function hideDownloadToast() {
+        document.getElementById('toastOverlay').classList.remove('show');
+        document.getElementById('downloadToast').classList.remove('show');
+    }
+    </script>
 </body>
 </html>
+
 

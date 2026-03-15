@@ -478,18 +478,71 @@ if ($movie && $selectedTime) {
         const proceedBtn = document.getElementById('proceed-btn');
         let selectedSeats = new Set();
 
+        // --- Click-and-Drag seat selection ---
+        let isDragging = false;
+        let dragAction = null; // 'select' or 'deselect'
+
+        function updateProceedBtn() {
+            proceedBtn.disabled = selectedSeats.size === 0;
+            // Keep "View from Seat" button in sync (injected by seat-pov.php)
+            var povBtn = document.getElementById('pov-trigger-btn');
+            if (povBtn) {
+                povBtn.disabled = selectedSeats.size === 0;
+            }
+        }
+
+        function applySeatAction(seat) {
+            const seatId = seat.getAttribute('data-seat');
+            if (dragAction === 'select' && !seat.classList.contains('selected')) {
+                seat.classList.add('selected');
+                seat.setAttribute('aria-checked', 'true');
+                selectedSeats.add(seatId);
+            } else if (dragAction === 'deselect' && seat.classList.contains('selected')) {
+                seat.classList.remove('selected');
+                seat.setAttribute('aria-checked', 'false');
+                selectedSeats.delete(seatId);
+            }
+            updateProceedBtn();
+        }
+
         seats.forEach(seat => {
-            seat.addEventListener('click', () => {
-                const seatId = seat.getAttribute('data-seat');
-                // Convert format from "A-1" to match what's displayed and stored in DB
-                const seatNumber = seatId; // Already in "A-1" format from data-seat attribute
-                seat.classList.toggle('selected');
-                seat.setAttribute('aria-checked', seat.classList.contains('selected'));
-                if (seat.classList.contains('selected')) selectedSeats.add(seatNumber);
-                else selectedSeats.delete(seatNumber);
-                proceedBtn.disabled = selectedSeats.size === 0;
+            // Start drag on mousedown
+            seat.addEventListener('mousedown', (e) => {
+                if (e.button !== 0) return; // only left-click
+                e.preventDefault();
+                isDragging = true;
+                // First seat determines action: if it was selected, we deselect; otherwise select
+                dragAction = seat.classList.contains('selected') ? 'deselect' : 'select';
+                applySeatAction(seat);
             });
+
+            // Continue drag on mouseover
+            seat.addEventListener('mouseover', () => {
+                if (isDragging) applySeatAction(seat);
+            });
+
+            // Touch support
+            seat.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                dragAction = seat.classList.contains('selected') ? 'deselect' : 'select';
+                applySeatAction(seat);
+            }, { passive: true });
         });
+
+        // End drag on mouseup anywhere
+        document.addEventListener('mouseup', () => { isDragging = false; dragAction = null; });
+
+        // Touch drag: detect element under finger as it moves
+        document.querySelector('.seats-wrapper').addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            const touch = e.touches[0];
+            const el = document.elementFromPoint(touch.clientX, touch.clientY);
+            if (el && el.classList.contains('seat') && !el.classList.contains('booked')) {
+                applySeatAction(el);
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', () => { isDragging = false; dragAction = null; });
 
         // --- Food Quantity Controls ---
         const foodItems = document.querySelectorAll('.food-item');

@@ -270,7 +270,6 @@ $conn->close();
       foreach ($carouselMovies as $movie): 
         $slideIndex++;
         // Use carousel_image if available, otherwise fallback to image_poster, then default
-        // Check if carousel_image exists in array and has a non-empty value
         $carouselImg = isset($movie['carousel_image']) ? trim($movie['carousel_image']) : '';
         $posterImg = isset($movie['image_poster']) ? trim($movie['image_poster']) : '';
         
@@ -282,9 +281,13 @@ $conn->close();
             $imageUrl = 'images/default-movie.jpg';
         }
         $title = htmlspecialchars($movie['title']);
+        $trailerId = !empty($movie['trailer_youtube_id']) ? htmlspecialchars($movie['trailer_youtube_id']) : '';
       ?>
-        <div class="hero-slide <?php echo $slideIndex === 1 ? 'active' : ''; ?>">
+        <div class="hero-slide <?php echo $slideIndex === 1 ? 'active' : ''; ?>" data-trailer="<?php echo $trailerId; ?>">
           <div class="hero-background" style="background-image: url('<?php echo $imageUrl; ?>');"></div>
+          <div class="hero-trailer-container" style="display: none;">
+            <iframe class="hero-trailer-iframe" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+          </div>
           <div class="hero-content">
             <h1><?php echo $title; ?></h1>
             <p>Now Showing</p>
@@ -293,8 +296,11 @@ $conn->close();
       <?php endforeach; ?>
     <?php else: ?>
       <!-- Fallback: Show default slide if no movies -->
-      <div class="hero-slide active">
+      <div class="hero-slide active" data-trailer="">
         <div class="hero-background" style="background-image: url('images/default-movie.jpg');"></div>
+        <div class="hero-trailer-container" style="display: none;">
+          <iframe class="hero-trailer-iframe" src="" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
         <div class="hero-content">
           <h1>Welcome to Ticketix</h1>
           <p>Check back soon for upcoming movies!</p>
@@ -326,6 +332,7 @@ $conn->close();
 </section>
 
 
+  <div class="main-sections-wrapper">
   <section id="now-showing">
     <h2>Now Showing</h2>
     <div class="movie-grid">
@@ -420,7 +427,7 @@ $conn->close();
         <div class="social-links">
           <h4>Follow Us:</h4>
           <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867">Facebook</a>
-          <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867">Instagram</a>
+          <a href="https://www.instagram.com/ticketix24">Instagram</a>
           <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867">Twitter</a>
           <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867">TikTok</a>
           <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867">YouTube</a>
@@ -451,6 +458,7 @@ $conn->close();
     <!-- Search Bar Section -->
     
   </section>
+  </div><!-- /.main-sections-wrapper -->
 
   <!-- Trailer Modal -->
   <div id="trailerModal" class="modal">
@@ -574,7 +582,7 @@ $conn->close();
     <p class="follow-title">FOLLOW US</p>
     <div class="social-icons">
       <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867"><img src="images/facebook.png" alt="Facebook"></a>
-      <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867"><img src="images/instagram.png" alt="Instagram"></a>
+      <a href="https://www.instagram.com/ticketix24"><img src="images/instagram.png" alt="Instagram"></a>
       <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867"><img src="images/x.png" alt="X"></a>
       <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867"><img src="images/tiktok.png" alt="TikTok"></a>
       <a href="https://www.facebook.com/photo?fbid=110530527255536&set=a.110530550588867"><img src="images/youtube.png" alt="YouTube"></a>
@@ -587,14 +595,95 @@ let currentSlideIndex = 0;
 const slides = document.querySelectorAll('.hero-slide');
 const indicators = document.querySelectorAll('.indicator');
 let isTransitioning = false; // Lock to prevent rapid transitions
+let trailerStartTimeout = null; // Timer to start trailer after 2s
+let trailerStopTimeout = null;  // Timer to stop trailer after 15s
 
+// ── Trailer Autoplay Helpers ──────────────────────────────────
+function startTrailerForSlide(slide) {
+    const trailerId = slide.getAttribute('data-trailer');
+    if (!trailerId) return; // No trailer for this movie
+
+    // After 2 seconds on this slide, start the trailer
+    trailerStartTimeout = setTimeout(() => {
+        const container = slide.querySelector('.hero-trailer-container');
+        const iframe = slide.querySelector('.hero-trailer-iframe');
+        if (!container || !iframe) return;
+
+        // Build YouTube embed URL: autoplay, muted, no controls, start from beginning
+        const embedUrl = `https://www.youtube.com/embed/${trailerId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1&fs=0&playsinline=1`;
+        iframe.src = embedUrl;
+        container.style.display = 'block';
+
+        // Small delay then fade in
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                container.classList.add('active');
+            });
+        });
+
+        // After 15 seconds, fade the trailer out and show backdrop again
+        trailerStopTimeout = setTimeout(() => {
+            stopTrailerForSlide(slide);
+        }, 15000);
+    }, 2000);
+}
+
+function stopTrailerForSlide(slide) {
+    // Clear any pending timers
+    if (trailerStartTimeout) {
+        clearTimeout(trailerStartTimeout);
+        trailerStartTimeout = null;
+    }
+    if (trailerStopTimeout) {
+        clearTimeout(trailerStopTimeout);
+        trailerStopTimeout = null;
+    }
+
+    const container = slide.querySelector('.hero-trailer-container');
+    const iframe = slide.querySelector('.hero-trailer-iframe');
+    if (!container || !iframe) return;
+
+    // Fade out
+    container.classList.remove('active');
+
+    // After the fade transition (1s), hide and clear src to stop playback
+    setTimeout(() => {
+        container.style.display = 'none';
+        iframe.src = '';
+    }, 1000);
+}
+
+function stopAllTrailers() {
+    if (trailerStartTimeout) {
+        clearTimeout(trailerStartTimeout);
+        trailerStartTimeout = null;
+    }
+    if (trailerStopTimeout) {
+        clearTimeout(trailerStopTimeout);
+        trailerStopTimeout = null;
+    }
+    slides.forEach(slide => {
+        const container = slide.querySelector('.hero-trailer-container');
+        const iframe = slide.querySelector('.hero-trailer-iframe');
+        if (container && iframe) {
+            container.classList.remove('active');
+            container.style.display = 'none';
+            iframe.src = '';
+        }
+    });
+}
+
+// ── Slide Navigation ──────────────────────────────────────────
 function showSlide(index) {
     // Prevent rapid transitions
     if (isTransitioning || slides[index].classList.contains('active')) {
-        return; // Already showing this slide or transition in progress
+        return;
     }
     
     isTransitioning = true;
+
+    // Stop any playing trailer on the current slide
+    stopAllTrailers();
     
     // Find current active slide
     let currentActiveIndex = -1;
@@ -614,29 +703,22 @@ function showSlide(index) {
         indicators.forEach(indicator => indicator.classList.remove('active'));
         
         if (isWrappingForward) {
-            // Going from last to first: seamless forward loop
-            // 1. First, remove active from last slide so it moves off-screen right
             if (currentActiveIndex >= 0) {
                 slides[currentActiveIndex].classList.remove('active');
-                slides[currentActiveIndex].classList.remove('prev'); // Ensure no prev class
-                // Last slide will go to default translateX(100%) - off-screen right
+                slides[currentActiveIndex].classList.remove('prev');
             }
             
-            // 2. Position first slide off-screen to the right, but further out to avoid overlap
             slides[index].classList.remove('prev', 'active');
             slides[index].style.transform = 'translateX(100%)';
-            slides[index].style.opacity = '0'; // Start invisible
+            slides[index].style.opacity = '0';
             
-            // Force reflow to ensure last slide transition has started
             if (currentActiveIndex >= 0) {
                 void slides[currentActiveIndex].offsetHeight;
             }
             void slides[index].offsetHeight;
             
-            // 3. Wait a moment for last slide to move, then bring first slide in
             setTimeout(() => {
                 requestAnimationFrame(() => {
-                    // Make first slide visible and animate it in
                     slides[index].style.opacity = '1';
                     slides[index].classList.add('active');
                     slides[index].style.transform = '';
@@ -644,7 +726,6 @@ function showSlide(index) {
                     
                     setTimeout(() => {
                         isTransitioning = false;
-                        // Clean up inline styles
                         slides.forEach(slide => {
                             if (!slide.classList.contains('active')) {
                                 slide.classList.remove('prev');
@@ -652,28 +733,25 @@ function showSlide(index) {
                             }
                             slide.style.opacity = '';
                         });
+                        // Start trailer for the new active slide
+                        startTrailerForSlide(slides[index]);
                     }, 550);
                 });
-            }, 50); // Small delay to let last slide start moving
+            }, 50);
         } else {
-            // Going from first to last: seamless backward loop
-            // 1. Position last slide off-screen to the left
             slides[index].classList.remove('active');
-            slides[index].classList.add('prev'); // This positions it at translateX(-100%)
+            slides[index].classList.add('prev');
             
-            // 2. Remove active from first slide and position it to slide out left
             if (currentActiveIndex >= 0) {
                 slides[currentActiveIndex].classList.remove('active');
                 slides[currentActiveIndex].classList.add('prev');
             }
             
-            // Force reflow
             void slides[index].offsetHeight;
             if (currentActiveIndex >= 0) {
                 void slides[currentActiveIndex].offsetHeight;
             }
             
-            // 3. Animate last slide in from left
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     slides[index].classList.remove('prev');
@@ -682,51 +760,47 @@ function showSlide(index) {
                     
                     setTimeout(() => {
                         isTransitioning = false;
-                        // Clean up
                         slides.forEach(slide => {
                             if (!slide.classList.contains('active')) {
                                 slide.classList.remove('prev');
                                 slide.style.transform = '';
                             }
                         });
+                        // Start trailer for the new active slide
+                        startTrailerForSlide(slides[index]);
                     }, 550);
                 });
             });
         }
     } else {
         // Normal transition (not wrapping)
-        // Remove all classes from slides
         slides.forEach(slide => {
             slide.classList.remove('active', 'prev');
         });
         
-        // Remove active class from all indicators
         indicators.forEach(indicator => indicator.classList.remove('active'));
         
-        // Add active class to current slide and indicator
         slides[index].classList.add('active');
         indicators[index].classList.add('active');
         
-        // Add prev class to previous slide for sliding effect
         const prevIndex = index === 0 ? slides.length - 1 : index - 1;
         slides[prevIndex].classList.add('prev');
         
-        // Reset transition lock after animation
         setTimeout(() => {
             isTransitioning = false;
-        }, 500); // Match the CSS transition duration
+            // Start trailer for the new active slide
+            startTrailerForSlide(slides[index]);
+        }, 500);
     }
 }
 
 function changeSlide(direction) {
-    // Don't allow navigation if there's only one slide
     if (slides.length <= 1) {
         return;
     }
     
     currentSlideIndex += direction;
     
-    // Handle wrap-around
     if (currentSlideIndex >= slides.length) {
         currentSlideIndex = 0;
     } else if (currentSlideIndex < 0) {
@@ -737,35 +811,41 @@ function changeSlide(direction) {
 }
 
 function currentSlide(index) {
-    // Don't allow navigation if there's only one slide
     if (slides.length <= 1) {
         return;
     }
     
-    currentSlideIndex = index - 1; // Convert to 0-based index
+    currentSlideIndex = index - 1;
     showSlide(currentSlideIndex);
 }
 
-// Auto-play functionality (optional)
+// Auto-play functionality (DISABLED - manual navigation only)
 let autoPlayInterval;
 
 function startAutoPlay() {
-    // Don't start auto-play if there's only one slide
     if (slides.length <= 1) {
         return;
     }
     autoPlayInterval = setInterval(() => {
         changeSlide(1);
-    }, 5000); // Change slide every 5 seconds
+    }, 5000);
 }
 
 function stopAutoPlay() {
     clearInterval(autoPlayInterval);
 }
 
-// Start auto-play when page loads
+// Start trailer for the first slide on page load
 document.addEventListener('DOMContentLoaded', function() {
     // startAutoPlay(); // DISABLED - Automatic transitions turned off
+    
+    // Start trailer for the initial active slide after page loads
+    if (slides.length > 0) {
+        const activeSlide = document.querySelector('.hero-slide.active');
+        if (activeSlide) {
+            startTrailerForSlide(activeSlide);
+        }
+    }
     
     // Pause auto-play when user hovers over carousel
     const hero = document.querySelector('.hero');
@@ -774,19 +854,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Pause auto-play when user clicks arrows or indicators
     const arrows = document.querySelectorAll('.arrow');
-    const indicators = document.querySelectorAll('.indicator');
+    const indicatorDots = document.querySelectorAll('.indicator');
     
     arrows.forEach(arrow => {
         arrow.addEventListener('click', () => {
             stopAutoPlay();
-            // setTimeout(startAutoPlay, 10000); // DISABLED - No auto-resume
         });
     });
     
-    indicators.forEach(indicator => {
+    indicatorDots.forEach(indicator => {
         indicator.addEventListener('click', () => {
             stopAutoPlay();
-            // setTimeout(startAutoPlay, 10000); // DISABLED - No auto-resume
         });
     });
 });
@@ -796,11 +874,9 @@ document.addEventListener('keydown', function(event) {
     if (event.key === 'ArrowLeft') {
         changeSlide(-1);
         stopAutoPlay();
-        // setTimeout(startAutoPlay, 10000); // DISABLED - No auto-resume
     } else if (event.key === 'ArrowRight') {
         changeSlide(1);
         stopAutoPlay();
-        // setTimeout(startAutoPlay, 10000); // DISABLED - No auto-resume
     }
 });
 
@@ -825,15 +901,22 @@ function openTrailer(movieName, dbTrailerId) {
     document.getElementById('trailerMovieName').textContent = movieName;
     document.getElementById('trailerTitle').textContent = movieName + ' - Trailer';
     
-    // Priority: 1) DB trailer ID  2) hardcoded map  3) generic fallback
+    // Priority: 1) DB trailer ID  2) hardcoded map  3) show placeholder
     let trailerId = (dbTrailerId && dbTrailerId.trim()) ? dbTrailerId.trim()
-                  : (movieTrailers[movieName] || 'DdR-gzFZoDk');
+                  : (movieTrailers[movieName] || '');
     
-    document.getElementById('trailerPlaceholder').style.display = 'none';
-    document.getElementById('youtubePlayer').style.display = 'block';
-    
-    const videoUrl = `https://www.youtube.com/embed/${trailerId}?autoplay=1&rel=0&modestbranding=1`;
-    document.getElementById('trailerVideo').src = videoUrl;
+    if (trailerId) {
+        document.getElementById('trailerPlaceholder').style.display = 'none';
+        document.getElementById('youtubePlayer').style.display = 'block';
+        
+        const videoUrl = `https://www.youtube.com/embed/${trailerId}?autoplay=1&rel=0&modestbranding=1`;
+        document.getElementById('trailerVideo').src = videoUrl;
+    } else {
+        // No trailer available — show placeholder
+        document.getElementById('youtubePlayer').style.display = 'none';
+        document.getElementById('trailerVideo').src = '';
+        document.getElementById('trailerPlaceholder').style.display = 'block';
+    }
     
     document.getElementById('trailerModal').style.display = 'block';
     stopAutoPlay();
@@ -1031,8 +1114,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const trailerButtons = document.querySelectorAll('button[onclick*="openTrailer"]');
     trailerButtons.forEach(button => {
         button.addEventListener('click', function() {
-            const movieName = this.getAttribute('onclick').match(/'([^']+)'/)[1];
-            openTrailer(movieName);
+            const args = this.getAttribute('onclick').match(/'([^']*)'/g);
+            const movieName = args && args[0] ? args[0].replace(/'/g, '') : '';
+            const trailerId = args && args[1] ? args[1].replace(/'/g, '') : '';
+            openTrailer(movieName, trailerId);
         });
     });
     

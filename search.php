@@ -148,21 +148,35 @@ if (!empty($search_query)) {
     <style>
         body {
             padding-top: 70px; /* Add padding to account for fixed header */
+            background: url('mainbg/Main.png') center / cover no-repeat fixed;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 0;
+            pointer-events: none;
         }
         
         /* Different layout for non-logged-in users */
-        body.not-logged-in {
-            background: linear-gradient(135deg, rgba(11, 11, 11, 0.95), rgba(30, 30, 30, 0.95)) !important;
+        body.not-logged-in::before {
+            background: rgba(0, 0, 0, 0.7) !important;
         }
         
         .login-prompt-banner {
-            background: linear-gradient(to right, #00BFFF, #3C50B2);
+            background: linear-gradient(to right, #558ace, #558acebd);
             color: white;
             padding: 15px 20px;
             text-align: center;
             margin-bottom: 30px;
             border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0, 191, 255, 0.3);
+            box-shadow: 0 4px 15px rgba(85, 138, 206, 0.3);
         }
         
         .login-prompt-banner p {
@@ -183,12 +197,12 @@ if (!empty($search_query)) {
         
         body.not-logged-in .search-result-card {
             opacity: 0.9;
-            border: 2px solid rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(85, 138, 206, 0.3);
         }
         
         body.not-logged-in .search-result-card:hover {
             opacity: 1;
-            border-color: rgba(0, 191, 255, 0.5);
+            border-color: rgba(85, 138, 206, 0.3);
         }
         
         .search-container {
@@ -196,6 +210,8 @@ if (!empty($search_query)) {
             margin: 0 auto;
             padding: 40px 20px;
             margin-top: 20px;
+            position: relative;
+            z-index: 1;
         }
         
         .search-header {
@@ -207,10 +223,11 @@ if (!empty($search_query)) {
             color: white;
             font-size: 2.5em;
             margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         
         .search-header p {
-            color: #ccc;
+            color: rgba(255, 255, 255, 0.8);
             font-size: 1.1em;
         }
         
@@ -223,27 +240,35 @@ if (!empty($search_query)) {
         .search-input {
             padding: 15px 20px;
             font-size: 16px;
-            border: 2px solid #00BFFF;
+            border: 2px solid #7E8D93;
             border-radius: 25px 0 0 25px;
             width: 400px;
             outline: none;
             background: white;
             color: #333;
         }
+
+        .search-input:focus {
+            border-color: #558ace;
+            box-shadow: 0 0 10px rgba(85, 138, 206, 0.3);
+        }
         
         .search-btn {
             padding: 15px 25px;
-            background: linear-gradient(to right, #00BFFF, #3C50B2);
+            background: linear-gradient(to right, #558ace, #558acebd);
             color: white;
             border: none;
             border-radius: 0 25px 25px 0;
             cursor: pointer;
             font-size: 16px;
             font-weight: bold;
+            transition: all 0.3s ease;
         }
         
         .search-btn:hover {
-            background: linear-gradient(to right, #3C50B2, #00BFFF);
+            background: linear-gradient(to right, #558acebd, #558acec0);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
         
         .search-results {
@@ -254,17 +279,19 @@ if (!empty($search_query)) {
         }
         
         .search-result-card {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(240, 248, 255, 0.95));
+            background: rgba(30, 30, 40, 0.85);
             border-radius: 15px;
             overflow: hidden;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+            box-shadow: 0 0 15px rgba(85, 138, 206, 0.3), 0 8px 16px rgba(0,0,0,0.3);
             transition: transform 0.3s ease, box-shadow 0.3s ease;
-            border: 1px solid rgba(0, 191, 255, 0.2);
+            border: 1px solid rgba(85, 138, 206, 0.3);
+            backdrop-filter: blur(10px);
         }
         
         .search-result-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 12px 24px rgba(0, 191, 255, 0.3);
+            box-shadow: 0 0 20px rgba(85, 138, 206, 0.3), 0 12px 24px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255, 255, 255, 0.2);
         }
         
         .search-result-image {
@@ -275,7 +302,7 @@ if (!empty($search_query)) {
         
         .search-result-content {
             padding: 25px;
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            background: linear-gradient(135deg, rgba(85, 138, 206, 0.3), rgba(85, 138, 206, 0.3));
         }
         
         .search-result-title {
@@ -294,7 +321,7 @@ if (!empty($search_query)) {
         }
         
         .search-result-genre {
-            color: #00BFFF;
+            color: #BDD3DB;
             font-weight: 600;
         }
         
@@ -303,7 +330,7 @@ if (!empty($search_query)) {
         }
         
         .search-result-rating {
-            color: #FFD700;
+            color: #ffffffff;
             font-weight: 600;
         }
         
@@ -324,12 +351,12 @@ if (!empty($search_query)) {
         }
         
         .status-now-showing {
-            background: #4CAF50;
+            background: rgba(85, 138, 206, 0.3);
             color: white;
         }
         
         .status-coming-soon {
-            background: #FF9800;
+            background: rgba(85, 138, 206, 0.3);
             color: white;
         }
         
@@ -351,43 +378,44 @@ if (!empty($search_query)) {
         }
         
         .ticket-btn {
-            background: linear-gradient(to right, #00BFFF, #3C50B2);
+            background: linear-gradient(to right, #558acebd, #558ace);
             color: white;
             width: 100%;
         }
         
         .ticket-btn:hover {
-            background: linear-gradient(to right, #3C50B2, #00BFFF);
+            background: linear-gradient(to right, #558ace, #558acebd);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0, 191, 255, 0.4);
+            box-shadow: 0 4px 12px rgba(85, 138, 206, 0.4);
         }
         
         .notify-btn {
-            background: linear-gradient(to right, #FF9800, #FF6B35);
+            background: linear-gradient(to right, #558acebd, #558ace);
             color: white;
             width: 100%;
         }
         
         .notify-btn:hover {
-            background: linear-gradient(to right, #FF6B35, #FF9800);
+            background: linear-gradient(to right, #558ace, #558acebd);
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(255, 152, 0, 0.4);
+            box-shadow: 0 4px 12px rgba(85, 138, 206, 0.4);
         }
         
         .no-results {
             text-align: center;
             padding: 60px 20px;
-            color: #ccc;
+            color: rgba(255, 255, 255, 0.7);
         }
         
         .no-results h3 {
             margin-bottom: 15px;
             color: white;
             font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
         
         .no-results p {
-            color: #ccc;
+            color: rgba(255, 255, 255, 0.7);
             font-size: 1.1em;
             margin-bottom: 10px;
         }
@@ -396,22 +424,24 @@ if (!empty($search_query)) {
             display: inline-block;
             margin-top: 20px;
             padding: 10px 20px;
-            background: linear-gradient(to right, #00BFFF, #3C50B2);
+            background: linear-gradient(to right, #558acebd, #558ace);
             color: white;
             text-decoration: none;
             border-radius: 25px;
-            transition: transform 0.3s ease;
+            transition: all 0.3s ease;
         }
         
         .back-to-home:hover {
             transform: translateY(-2px);
             color: white;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
         
         h2 {
             color: white;
             font-size: 1.8em;
             margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         /* Navigation search form styling */
@@ -432,7 +462,7 @@ if (!empty($search_query)) {
         .nav-search-input {
           padding: 10px 18px;
           font-size: 14px;
-          border: 2px solid rgba(0, 191, 255, 0.3);
+          border: 2px solid rgba(255, 255, 255, 0.72);
           border-radius: 25px 0 0 25px;
           background: transparent;
           color: white;
@@ -446,10 +476,10 @@ if (!empty($search_query)) {
         }
         
         .nav-search-input:focus {
-          border-color: #00BFFF;
+          border-color: #7E8D93;
           background: rgba(255, 255, 255, 0.05);
           width: 280px;
-          box-shadow: 0 0 15px rgba(0, 191, 255, 0.4);
+          box-shadow: 0 0 15px rgba(126, 141, 147, 0.4);
           color: white;
         }
         
@@ -461,7 +491,7 @@ if (!empty($search_query)) {
           padding: 10px 15px;
           background: transparent;
           color: white;
-          border: 2px solid rgba(0, 191, 255, 0.3);
+          border: 2px solid rgba(255, 255, 255, 0.72);
           border-left: none;
           border-radius: 0 25px 25px 0;
           cursor: pointer;
@@ -477,8 +507,8 @@ if (!empty($search_query)) {
         }
         
         .nav-search-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(0, 191, 255, 0.5);
+          background: rgba(207, 207, 207, 0);
+          border-color: rgba(255, 255, 255, 0.72);
           transform: scale(1.1);
         }
         
@@ -487,14 +517,14 @@ if (!empty($search_query)) {
         }
         
         .nav-search-btn:focus {
-          outline: 2px solid rgba(0, 191, 255, 0.5);
+          outline: 2px solid rgba(126, 141, 147, 0.5);
           outline-offset: 2px;
           border-radius: 0 25px 25px 0;
-          border-color: #00BFFF;
+          border-color: #7E8D93;
         }
         
         .nav-search-input:focus ~ .nav-search-btn {
-          border-color: #00BFFF;
+          border-color: #7E8D93;
         }
         
         /* Responsive design for navigation search bar */
@@ -614,7 +644,7 @@ if (!empty($search_query)) {
                             <?php if (!empty($result['image'])): ?>
                                 <img src="<?php echo htmlspecialchars($result['image']); ?>" alt="<?php echo htmlspecialchars($result['title']); ?>" class="search-result-image">
                             <?php else: ?>
-                                <div class="search-result-image" style="background: linear-gradient(135deg, #00BFFF, #3C50B2); display: flex; align-items: center; justify-content: center; color: white; font-size: 3em;">🎬</div>
+                                <div class="search-result-image" style="background: linear-gradient(135deg, #7E8D93, #373D3F); display: flex; align-items: center; justify-content: center; color: white; font-size: 3em;">🎬</div>
                             <?php endif; ?>
                             
                             <div class="search-result-content">

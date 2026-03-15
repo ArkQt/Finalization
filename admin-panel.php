@@ -32,9 +32,8 @@ $nowShowingResult = $conn->query("
     WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL)
     AND (m.coming_soon = 0 OR m.coming_soon IS NULL)
     AND (m.now_showing = 1 OR (ms.show_date >= '$today' AND ms.show_date IS NOT NULL))
-    GROUP BY m.movie_show_id
     ORDER BY m.title ASC
-    LIMIT 5
+    LIMIT 10
 ");
 
 $nowShowing = [];
@@ -52,7 +51,7 @@ if (empty($nowShowing)) {
         AND (now_showing = 1)
         AND (coming_soon = 0 OR coming_soon IS NULL)
         ORDER BY title ASC 
-        LIMIT 5
+        LIMIT 10
     ");
     if ($fallbackResult) {
         while ($row = $fallbackResult->fetch_assoc()) {
@@ -71,9 +70,8 @@ $comingSoonResult = $conn->query("
     WHERE (m.is_deleted = 0 OR m.is_deleted IS NULL)
     AND (m.coming_soon = 1)
     AND (m.now_showing = 0 OR m.now_showing IS NULL)
-    GROUP BY m.movie_show_id
     ORDER BY m.title ASC
-    LIMIT 5
+    LIMIT 10
 ");
 
 $comingSoon = [];
@@ -91,7 +89,7 @@ if (empty($comingSoon)) {
         AND coming_soon = 1 
         AND (now_showing = 0 OR now_showing IS NULL)
         ORDER BY title ASC 
-        LIMIT 5
+        LIMIT 10
     ");
     if ($fallbackResult) {
         while ($row = $fallbackResult->fetch_assoc()) {

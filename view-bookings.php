@@ -91,30 +91,7 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
                 $paymentStmt->close();
             }
             
-            // If approving, send booking confirmation email
-            if ($action === 'approve') {
-                // Get ticket_id for this reservation
-                $ticketStmt = $conn->prepare("SELECT ticket_id FROM TICKET WHERE reserve_id = ? LIMIT 1");
-                $ticketStmt->bind_param("i", $id);
-                $ticketStmt->execute();
-                $ticketResult = $ticketStmt->get_result();
-                if ($ticketResult && $ticketResult->num_rows > 0) {
-                    $ticketRow = $ticketResult->fetch_assoc();
-                    $ticketId = $ticketRow['ticket_id'];
-                    $ticketStmt->close();
-                    
-                    // Send booking confirmation email
-                    require_once __DIR__ . '/send-booking-email.php';
-                    $emailSent = sendBookingConfirmationEmail($ticketId, $conn);
-                    if ($emailSent) {
-                        error_log("Booking confirmation email sent successfully after approval.");
-                    } else {
-                        error_log("Failed to send booking confirmation email after approval.");
-                    }
-                } else {
-                    $ticketStmt->close();
-                }
-            }
+            // Email will be sent when the customer clicks "Download" in My Bookings
             
             $action_message = "Booking " . ($action === 'approve' ? 'approved' : 'declined') . " successfully!";
             header("Location: view-bookings.php?success=" . urlencode($action_message));

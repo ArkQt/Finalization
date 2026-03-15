@@ -67,25 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['add_payment_method_ch
     $success = false;
     $errorMsg = '';
 
-    if ($paymentType === 'credit-card') {
-        $cardNumber = trim($_POST['card_number'] ?? '');
-        $cardName = trim($_POST['card_name'] ?? '');
-        $cardExpiry = trim($_POST['card_expiry'] ?? '');
-        $cardCVV = trim($_POST['card_cvv'] ?? '');
-        
-        if (empty($cardNumber) || empty($cardName) || empty($cardExpiry) || empty($cardCVV)) {
-            $errorMsg = "All credit card fields are required.";
-        } else {
-            $stmt = $conn->prepare("INSERT INTO USER_PAYMENT_METHODS (acc_id, payment_type, card_number, card_name, card_expiry, card_cvv, is_default) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("isssssi", $userId, $paymentType, $cardNumber, $cardName, $cardExpiry, $cardCVV, $isDefault);
-            if ($stmt->execute()) {
-                $success = true;
-            } else {
-                $errorMsg = "Error adding credit card: " . $conn->error;
-            }
-            $stmt->close();
-        }
-    } elseif ($paymentType === 'gcash' || $paymentType === 'grabpay' || $paymentType === 'paymaya') {
+    if ($paymentType === 'gcash' || $paymentType === 'grabpay' || $paymentType === 'paymaya') {
         $numberField = $paymentType . "_number";
         $number = trim($_POST[$numberField] ?? '');
         
@@ -172,87 +154,19 @@ $conn->close();
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Payment - Ticketix</title>
     <link rel="icon" type="image/png" href="images/brand x.png" />
-    <link rel="stylesheet" href="css/ticketix-main.css">
-    <link rel="stylesheet" href="css/payment.css">
-    <style>
-        .add-payment-section {
-            margin-bottom: 30px;
-            padding: 20px;
-            background: #f8f9ff;
-            border-radius: 10px;
-            border: 2px solid #667eea;
-        }
-        .toggle-add-payment {
-            width: 100%;
-            padding: 12px;
-            background: #667eea;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1em;
-            font-weight: 600;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        .toggle-add-payment:hover {
-            background: #5568d3;
-        }
-        .add-payment-form {
-            margin-top: 20px;
-            display: none;
-        }
-        .add-payment-form.active {
-            display: block;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 600;
-            color: #333;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 10px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 1em;
-            box-sizing: border-box;
-        }
-        .form-group small {
-            color: #666;
-            font-size: 0.85em;
-            display: block;
-            margin-top: 5px;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .message {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            font-weight: 600;
-        }
-        .message.success {
-            background: rgba(76, 175, 80, 0.1);
-            border: 1px solid #4CAF50;
-            color: #2e7d32;
-        }
-        .message.error {
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid #f44336;
-            color: #c62828;
-        }
-    </style>
+    <link rel="stylesheet" href="css/payment.css?v=<?php echo time(); ?>">
 </head>
 <body>
-    <div class="payment-container">
+    <!-- Header Bar with Logo -->
+    <div class="payment-header">
+        <div class="logo">
+            <img src="images/brand x.png" alt="Ticketix Logo">
+        </div>
+        <span class="header-title">Payment</span>
         <a href="checkout.php" class="btn-back" onclick="history.back(); return false;">← Back</a>
+    </div>
+
+    <div class="payment-container">
         <h1>Payment Method</h1>
         <div class="total-amount">Total: ₱<?= number_format($grandTotal, 2) ?></div>
         
@@ -284,7 +198,7 @@ $conn->close();
                     <label for="payment_type_select">Payment Method Type *</label>
                     <select id="payment_type_select" name="payment_type" required>
                         <option value="">Select Payment Method</option>
-                        <option value="credit-card">Credit Card</option>
+
                         <option value="gcash">GCash</option>
                         <option value="paypal">PayPal</option>
                         <option value="grabpay">GrabPay</option>
@@ -292,27 +206,7 @@ $conn->close();
                     </select>
                 </div>
                 
-                <!-- Credit Card Fields -->
-                <div id="credit-card-fields" style="display: none;">
-                    <div class="form-group">
-                        <label for="card_name">Cardholder Name *</label>
-                        <input type="text" id="card_name" name="card_name" placeholder="John Doe">
-                    </div>
-                    <div class="form-group">
-                        <label for="card_number">Card Number *</label>
-                        <input type="text" id="card_number" name="card_number" placeholder="1234 1234 1234 1234" maxlength="19">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="card_expiry">Expiry Date (MM/YYYY) *</label>
-                            <input type="text" id="card_expiry" name="card_expiry" placeholder="12/2025" maxlength="7">
-                        </div>
-                        <div class="form-group">
-                            <label for="card_cvv">CVV *</label>
-                            <input type="text" id="card_cvv" name="card_cvv" placeholder="123" maxlength="4">
-                        </div>
-                    </div>
-                </div>
+
                 
                 <!-- GCash Fields -->
                 <div id="gcash-fields" style="display: none;">
@@ -356,7 +250,7 @@ $conn->close();
                     </label>
                 </div>
                 
-                <button type="submit" name="add_payment_method_checkout" class="btn-pay" style="background: #4CAF50;">
+                <button type="submit" name="add_payment_method_checkout" class="btn-pay btn-save">
                     Save Payment Method
                 </button>
             </form>
@@ -374,82 +268,73 @@ $conn->close();
             
             <!-- Saved Payment Methods Section -->
             <?php if (!empty($savedPaymentMethods)): ?>
-            <div class="saved-payment-methods" style="margin-bottom: 30px; padding: 20px; background: #f0f4ff; border-radius: 10px; border: 2px solid #667eea;">
-                <h3 style="margin-bottom: 15px; color: #333; font-size: 1.1em;">Select Payment Method</h3>
-                <div style="display: grid; gap: 10px;">
+            <div class="saved-payment-methods">
+                <h3>Select Payment Method</h3>
+                <div class="saved-methods-grid">
                     <?php foreach ($savedPaymentMethods as $method): ?>
-                        <div class="saved-method-option" style="padding: 12px; border: 2px solid #e0e0e0; border-radius: 8px; background: white; cursor: pointer; transition: all 0.3s;" 
-                             data-method='<?= htmlspecialchars(json_encode($method)) ?>'>
-                            <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <div class="saved-method-option" data-method='<?= htmlspecialchars(json_encode($method)) ?>'>
+                            <div class="method-row">
                                 <div>
-                                    <?php if ($method['payment_type'] === 'credit-card'): ?>
-                                        <strong>Credit Card</strong>
-                                        <div style="margin-top: 5px; color: #666; font-size: 0.9em;">
-                                            <?= htmlspecialchars($method['card_name'] ?? '') ?> - ****<?= htmlspecialchars(substr(str_replace(' ', '', $method['card_number'] ?? ''), -4)) ?>
-                                            <?php if ($method['is_default']): ?>
-                                                <span style="margin-left: 8px; padding: 2px 8px; background: #667eea; color: white; border-radius: 10px; font-size: 0.8em;">Default</span>
-                                            <?php endif; ?>
-                                        </div>
-                                    <?php elseif ($method['payment_type'] === 'gcash'): ?>
+                                    <?php if ($method['payment_type'] === 'gcash'): ?>
                                         <strong>GCash</strong>
-                                        <div style="margin-top: 5px; color: #666; font-size: 0.9em;">
+                                        <div class="method-detail">
                                             <?= htmlspecialchars($method['gcash_number'] ?? '') ?>
                                             <?php if ($method['is_default']): ?>
-                                                <span style="margin-left: 8px; padding: 2px 8px; background: #667eea; color: white; border-radius: 10px; font-size: 0.8em;">Default</span>
+                                                <span class="default-badge">Default</span>
                                             <?php endif; ?>
                                         </div>
                                     <?php elseif ($method['payment_type'] === 'paypal'): ?>
                                         <strong>PayPal</strong>
-                                        <div style="margin-top: 5px; color: #666; font-size: 0.9em;">
+                                        <div class="method-detail">
                                             <?= htmlspecialchars($method['paypal_email'] ?? '') ?>
                                             <?php if ($method['is_default']): ?>
-                                                <span style="margin-left: 8px; padding: 2px 8px; background: #667eea; color: white; border-radius: 10px; font-size: 0.8em;">Default</span>
+                                                <span class="default-badge">Default</span>
                                             <?php endif; ?>
                                         </div>
                                     <?php elseif ($method['payment_type'] === 'paymaya'): ?>
                                         <strong>PayMaya</strong>
-                                        <div style="margin-top: 5px; color: #666; font-size: 0.9em;">
+                                        <div class="method-detail">
                                             <?= htmlspecialchars($method['gcash_number'] ?? '') ?>
                                             <?php if ($method['is_default']): ?>
-                                                <span style="margin-left: 8px; padding: 2px 8px; background: #667eea; color: white; border-radius: 10px; font-size: 0.8em;">Default</span>
+                                                <span class="default-badge">Default</span>
                                             <?php endif; ?>
                                         </div>
                                     <?php elseif ($method['payment_type'] === 'grabpay'): ?>
                                         <strong>GrabPay</strong>
-                                        <div style="margin-top: 5px; color: #666; font-size: 0.9em;">
+                                        <div class="method-detail">
                                             <?= htmlspecialchars($method['gcash_number'] ?? '') ?>
                                             <?php if ($method['is_default']): ?>
-                                                <span style="margin-left: 8px; padding: 2px 8px; background: #667eea; color: white; border-radius: 10px; font-size: 0.8em;">Default</span>
+                                                <span class="default-badge">Default</span>
                                             <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
                                 </div>
-                                <input type="radio" name="saved_payment_method" value="<?= $method['payment_method_id'] ?>" style="margin-left: 10px;">
+                                <input type="radio" name="saved_payment_method" value="<?= $method['payment_method_id'] ?>" style="margin-left: 10px; accent-color: #558ace;">
                             </div>
                         </div>
                     <?php endforeach; ?>
                 </div>
             </div>
             <?php else: ?>
-            <div style="margin-bottom: 30px; padding: 20px; background: #fff3cd; border-radius: 10px; border: 2px solid #ffc107; text-align: center;">
-                <p style="margin-bottom: 10px; color: #856404; font-weight: 600;">No saved payment methods found.</p>
-                <p style="color: #856404;">Please add a payment method above to continue.</p>
+            <div class="no-payment-warning">
+                <p>No saved payment methods found.</p>
+                <p>Please add a payment method above to continue.</p>
             </div>
             <?php endif; ?>
             
-            <div id="paymentSummary" style="display: none; margin: 20px 0; padding: 15px; background: #f8f9ff; border-radius: 8px; border-left: 4px solid #667eea;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <span style="font-weight: 600; color: #333;">Total to Pay:</span>
-                    <span style="font-weight: 700; color: #667eea; font-size: 1.2em;">₱<?= number_format($grandTotal, 2) ?></span>
+            <div id="paymentSummary" class="payment-summary" style="display: none;">
+                <div class="summary-row">
+                    <span class="summary-label">Total to Pay:</span>
+                    <span class="summary-value">₱<?= number_format($grandTotal, 2) ?></span>
                 </div>
-                <div id="referenceBanner" style="margin-top: 10px; padding: 10px; background: rgba(0, 191, 255, 0.1); border-radius: 4px; border: 1px solid rgba(0, 191, 255, 0.4); color: #00BFFF; font-weight: 600; display: none;"></div>
+                <div id="referenceBanner" class="reference-banner" style="display: none;"></div>
             </div>
             
             <button type="button" class="btn-pay" id="initiatePaymentBtn" style="display: none;">Pay with <span id="selectedEwalletName"></span></button>
             
             <div id="completePaymentSection" style="display: none;">
-                <div id="completeReferenceBanner" style="margin-bottom: 15px; padding: 12px 16px; border-radius: 8px; background: rgba(0, 191, 255, 0.1); border: 1px solid rgba(0, 191, 255, 0.4); color: #00BFFF; font-weight: 600; display: none;"></div>
-                <button type="submit" class="btn-pay" id="completePaymentBtn" style="background: #4CAF50;">Complete Payment</button>
+                <div id="completeReferenceBanner" class="reference-banner" style="margin-bottom: 15px; display: none;"></div>
+                <button type="submit" class="btn-pay btn-complete" id="completePaymentBtn">Complete Payment</button>
             </div>
         </form>
         
@@ -469,7 +354,7 @@ $conn->close();
         // Toggle payment fields based on selection
         document.getElementById('payment_type_select').addEventListener('change', function() {
             const paymentType = this.value;
-            document.getElementById('credit-card-fields').style.display = (paymentType === 'credit-card') ? 'block' : 'none';
+
             document.getElementById('gcash-fields').style.display = (paymentType === 'gcash') ? 'block' : 'none';
             document.getElementById('paypal-fields').style.display = (paymentType === 'paypal') ? 'block' : 'none';
             document.getElementById('grabpay-fields').style.display = (paymentType === 'grabpay') ? 'block' : 'none';
@@ -485,11 +370,9 @@ $conn->close();
                 
                 // Highlight selected
                 document.querySelectorAll('.saved-method-option').forEach(el => {
-                    el.style.borderColor = '#e0e0e0';
-                    el.style.background = 'white';
+                    el.classList.remove('selected');
                 });
-                this.style.borderColor = '#667eea';
-                this.style.background = '#f8f9ff';
+                this.classList.add('selected');
             });
         });
 
@@ -517,15 +400,7 @@ $conn->close();
             if (completeBtn) completeBtn.disabled = true;
             
             if (savedMethodId && selectedSavedMethod) {
-                if (selectedSavedMethod.payment_type === 'credit-card') {
-                    if (completeSection) {
-                        completeSection.style.display = 'block';
-                        completeBtn.textContent = 'Complete Payment';
-                        completeBtn.disabled = false;
-                    }
-                    if (initiateBtn) initiateBtn.style.display = 'none';
-                } else {
-                    if (initiateBtn) {
+                        if (initiateBtn) {
                         initiateBtn.disabled = false;
                         initiateBtn.style.display = 'inline-block';
                         const paymentTypeNames = {
@@ -538,7 +413,6 @@ $conn->close();
                         initiateBtn.textContent = `Pay with ${displayName}`;
                     }
                     if (completeSection) completeSection.style.display = 'none';
-                }
                 if (paymentSummary) paymentSummary.style.display = 'block';
                 return;
             }
@@ -612,14 +486,8 @@ $conn->close();
                 let prefix = 'PAY';
                 let digits = '';
                 
-                if (selectedSavedMethod.payment_type === 'credit-card') {
-                    prefix = 'CARD';
-                    const cardNumber = selectedSavedMethod.card_number.replace(/\s/g, '');
-                    digits = cardNumber.slice(-4);
-                } else {
-                    prefix = selectedSavedMethod.payment_type.toUpperCase();
-                    digits = String(Math.floor(100000 + Math.random() * 900000));
-                }
+                prefix = selectedSavedMethod.payment_type.toUpperCase();
+                digits = String(Math.floor(100000 + Math.random() * 900000));
                 
                 document.getElementById('referenceNumber').value = `${prefix}-${digits}`;
             }
@@ -627,35 +495,7 @@ $conn->close();
             return true;
         });
 
-        // Format card number with spaces
-        const cardNumberInput = document.getElementById('card_number');
-        if (cardNumberInput) {
-            cardNumberInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-                value = value.match(/.{1,4}/g)?.join(' ') || value;
-                e.target.value = value;
-            });
-        }
 
-        // Format card expiry
-        const cardExpiryInput = document.getElementById('card_expiry');
-        if (cardExpiryInput) {
-            cardExpiryInput.addEventListener('input', function(e) {
-                let value = e.target.value.replace(/\D/g, '');
-                if (value.length >= 2) {
-                    value = value.substring(0, 2) + '/' + value.substring(2, 6);
-                }
-                e.target.value = value;
-            });
-        }
-
-        // Format CVV
-        const cardCVVInput = document.getElementById('card_cvv');
-        if (cardCVVInput) {
-            cardCVVInput.addEventListener('input', function(e) {
-                e.target.value = e.target.value.replace(/\D/g, '');
-            });
-        }
 
         // Format phone numbers
         const phoneInputs = ['gcash_number', 'grabpay_number', 'paymaya_number'];
